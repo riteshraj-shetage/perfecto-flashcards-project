@@ -9,10 +9,22 @@ CREATE TABLE IF NOT EXISTS users (
     id INT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(255) NOT NULL,
     email VARCHAR(255) NOT NULL UNIQUE,
-    password VARCHAR(255) NOT NULL, -- Note: No password hashing for MVP as per requirements
+    password VARCHAR(255) NOT NULL COMMENT 'Hashed password using PHP password_hash()',
     role ENUM('user', 'admin') NOT NULL DEFAULT 'user',
+    reset_token VARCHAR(64) NULL,
+    reset_expires DATETIME NULL,
+    current_streak INT DEFAULT 0,
+    longest_streak INT DEFAULT 0,
+    last_activity_date DATE,
+    total_xp INT DEFAULT 0,
+    learning_goal ENUM('casual', 'regular', 'intensive') DEFAULT 'regular',
+    daily_goal INT DEFAULT 50 COMMENT 'Daily XP goal',
+    timezone VARCHAR(50) DEFAULT 'UTC',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_reset_token (reset_token),
+    INDEX idx_email (email),
+    INDEX idx_last_activity (last_activity_date)
 );
 
 -- Create languages table
@@ -44,6 +56,8 @@ CREATE TABLE IF NOT EXISTS flashcards (
     foreign_text VARCHAR(255) NOT NULL,
     pronunciation VARCHAR(255),
     image_url VARCHAR(255) DEFAULT 'https://placehold.co/300x200',
+    xp_value INT DEFAULT 10,
+    difficulty ENUM('beginner', 'intermediate', 'advanced') DEFAULT 'beginner',
     display_order INT DEFAULT 0,
     FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE
 );
@@ -98,4 +112,64 @@ CREATE TABLE IF NOT EXISTS user_achievements (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (achievement_id) REFERENCES achievements(id) ON DELETE CASCADE,
     UNIQUE KEY user_achievement (user_id, achievement_id)
+);
+
+-- Create login attempts table for rate limiting
+CREATE TABLE IF NOT EXISTS login_attempts (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    identifier VARCHAR(255) NOT NULL, -- email or IP address
+    success BOOLEAN DEFAULT FALSE,
+    ip_address VARCHAR(45) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_identifier_time (identifier, created_at),
+    INDEX idx_created_at (created_at)
+);
+
+-- Create activity logs table
+CREATE TABLE IF NOT EXISTS activity_logs (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT,
+    action VARCHAR(100) NOT NULL,
+    details TEXT,
+    ip_address VARCHAR(45),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
+    INDEX idx_user_action (user_id, action),
+    INDEX idx_created_at (created_at)
+);
+
+-- Create settings table for dynamic configuration
+CREATE TABLE IF NOT EXISTS settings (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    setting_key VARCHAR(100) NOT NULL UNIQUE,
+    setting_value TEXT,
+    setting_type ENUM('string', 'number', 'boolean', 'json') DEFAULT 'string',
+    description TEXT,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- Create user sessions table for better session management
+CREATE TABLE IF NOT EXISTS user_sessions (
+    id VARCHAR(128) PRIMARY KEY,
+    user_id INT NOT NULL,
+    ip_address VARCHAR(45),
+    user_agent TEXT,
+    last_activity TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_user_activity (user_id, last_activity)
+);
+
+
+
+-- Create user streaks table for detailed tracking
+CREATE TABLE IF NOT EXISTS user_streaks (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    streak_date DATE NOT NULL,
+    xp_earned INT DEFAULT 0,
+    lessons_completed INT DEFAULT 0,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    UNIQUE KEY user_date (user_id, streak_date),
+    INDEX idx_user_date (user_id, streak_date)
 );
