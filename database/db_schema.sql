@@ -1,8 +1,8 @@
 -- Database schema for perfecto language learning app
 
 -- Create database
-CREATE DATABASE IF NOT EXISTS perfectopro;
-USE perfectopro;
+CREATE DATABASE IF NOT EXISTS perfecto_db;
+USE perfecto_db;
 
 -- Create users table
 CREATE TABLE IF NOT EXISTS users (
