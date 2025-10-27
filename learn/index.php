@@ -1,9 +1,21 @@
 <?php
 include_once '../includes/config.php';
 
-// Get selected language and category
+// Get selected language and category with validation
 $lang_code = isset($_GET['lang']) ? sanitizeInput($_GET['lang']) : 'es'; // Default to Spanish
 $category_slug = isset($_GET['category']) ? sanitizeInput($_GET['category']) : '';
+
+// Validate language code format (should be 2-3 letter code)
+if (!preg_match('/^[a-z]{2,3}$/i', $lang_code)) {
+    setFlashMessage("Invalid language code format.", "error");
+    redirectTo(SITE_URL);
+}
+
+// Validate category slug format (alphanumeric with dashes)
+if (!empty($category_slug) && !preg_match('/^[a-z0-9-]+$/i', $category_slug)) {
+    setFlashMessage("Invalid category format.", "error");
+    redirectTo(SITE_URL);
+}
 
 // Get language information
 $language_sql = "SELECT * FROM languages WHERE code = ?";
@@ -35,7 +47,7 @@ while ($row = $categories_result->fetch_assoc()) {
 // If no category is selected and there are categories, select the first one
 if (empty($category_slug) && !empty($categories)) {
     $category_slug = $categories[0]['slug'];
-    redirectTo(SITE_URL . "/learn/index.php?lang=$lang_code&category=$category_slug");
+    redirectTo(SITE_URL . "/learn/index.php?lang=" . urlencode($lang_code) . "&category=" . urlencode($category_slug));
 }
 
 // Get selected category information
@@ -48,7 +60,7 @@ $category_result = $stmt->get_result();
 if ($category_result->num_rows == 0 && !empty($category_slug)) {
     // Category not found, redirect to the first category
     if (!empty($categories)) {
-        redirectTo(SITE_URL . "/learn/index.php?lang=$lang_code&category=" . $categories[0]['slug']);
+        redirectTo(SITE_URL . "/learn/index.php?lang=" . urlencode($lang_code) . "&category=" . urlencode($categories[0]['slug']));
     } else {
         redirectTo(SITE_URL);
     }
@@ -295,7 +307,7 @@ include_once '../includes/header.php';
                 <?php if ($quiz_unlocked): ?>
                     <div class="quiz-unlock-notice">
                         <span class="unlock-icon">🎉</span>
-                        <span>Quiz unlocked! <a href="<?php echo SITE_URL; ?>/quiz/index.php?lang=<?php echo $lang_code; ?>&category=<?php echo $category_slug; ?>" class="quiz-link">Take the quiz</a></span>
+                        <span>Quiz unlocked! <a href="<?php echo SITE_URL; ?>/quiz/index.php?lang=<?php echo urlencode($lang_code); ?>&category=<?php echo urlencode($category_slug); ?>" class="quiz-link">Take the quiz</a></span>
                     </div>
                 <?php endif; ?>
             </div>
@@ -307,7 +319,7 @@ include_once '../includes/header.php';
                 <h3>Categories</h3>
                 <div class="category-list">
                     <?php foreach ($categories as $cat): ?>
-                        <a href="?lang=<?php echo $lang_code; ?>&category=<?php echo $cat['slug']; ?>" 
+                        <a href="?lang=<?php echo urlencode($lang_code); ?>&category=<?php echo urlencode($cat['slug']); ?>" 
                            class="category-item <?php echo $cat['slug'] === $category_slug ? 'active' : ''; ?>">
                             <span class="category-name"><?php echo htmlspecialchars($cat['name']); ?></span>
                             <?php if (isLoggedIn()): ?>
@@ -383,16 +395,17 @@ include_once '../includes/header.php';
                                             </button>
                                             
                                             <?php if (isLoggedIn()): ?>
-                                                <form method="post" action="" ng-if="!isCompleted(flashcard.id)" class="completion-form">
+                                                <form method="post" action="" ng-if="!isCompleted(flashcard.id)" class="completion-form" ng-submit="submitCompletion($event)">
                                                     <input type="hidden" name="csrf_token" value="<?php echo generateCSRFToken(); ?>">
                                                     <input type="hidden" name="flashcard_id" value="{{flashcard.id}}">
-                                                    <button type="submit" name="complete_lesson" class="btn btn-success complete-btn">
+                                                    <button type="submit" name="complete_lesson" class="btn btn-success complete-btn" ng-disabled="isSubmitting">
                                                         <i class="btn-icon check-icon"></i>
-                                                        Mark as Learned
+                                                        <span ng-if="!isSubmitting">Mark as Learned</span>
+                                                        <span ng-if="isSubmitting">Saving...</span>
                                                     </button>
                                                 </form>
                                                 <div class="completed-badge" ng-if="isCompleted(flashcard.id)">
-                                                    <i class="completed-icon"></i>
+                                                    <i class="completed-icon">✓</i>
                                                     <span>Learned!</span>
                                                 </div>
                                             <?php else: ?>
@@ -416,6 +429,17 @@ include_once '../includes/header.php';
                             <i class="view-icon grid-icon"></i>
                             Grid View
                         </button>
+                    </div>
+                    
+                    <!-- Keyboard Shortcuts Guide -->
+                    <div class="keyboard-shortcuts">
+                        <h4>⌨️ Keyboard Shortcuts</h4>
+                        <div class="shortcuts-list">
+                            <span class="shortcut"><kbd>Space</kbd> or <kbd>→</kbd> Flip card / Next</span>
+                            <span class="shortcut"><kbd>←</kbd> Previous card</span>
+                            <span class="shortcut"><kbd>F</kbd> Flip current card</span>
+                            <span class="shortcut"><kbd>G</kbd> Toggle grid view</span>
+                        </div>
                     </div>
                     
                     <!-- Grid View -->
@@ -442,7 +466,7 @@ include_once '../includes/header.php';
                     <h3>No flashcards available</h3>
                     <p>This category doesn't have any flashcards yet. Check back later or try another category.</p>
                     <?php if (count($categories) > 1): ?>
-                        <a href="?lang=<?php echo $lang_code; ?>" class="btn btn-primary">Browse Other Categories</a>
+                        <a href="?lang=<?php echo urlencode($lang_code); ?>" class="btn btn-primary">Browse Other Categories</a>
                     <?php else: ?>
                         <a href="<?php echo SITE_URL; ?>" class="btn btn-primary">Choose Another Language</a>
                     <?php endif; ?>
@@ -457,7 +481,7 @@ include_once '../includes/header.php';
                     <div class="quiz-content">
                         <h3>🎯 Quiz Time!</h3>
                         <p>You've completed all lessons in this category. Test your knowledge with a quiz!</p>
-                        <a href="<?php echo SITE_URL; ?>/quiz/index.php?lang=<?php echo $lang_code; ?>&category=<?php echo $category_slug; ?>" 
+                        <a href="<?php echo SITE_URL; ?>/quiz/index.php?lang=<?php echo urlencode($lang_code); ?>&category=<?php echo urlencode($category_slug); ?>" 
                            class="btn btn-primary quiz-btn">
                             Take Quiz
                         </a>
@@ -470,29 +494,38 @@ include_once '../includes/header.php';
 
 <script>
 // Update the Angular controller initialization
-perfectoApp.controller('LearnController', function($scope) {
+perfectoApp.controller('LearnController', function($scope, $timeout) {
     $scope.currentIndex = 0;
     $scope.flashcards = [];
     $scope.gridView = false;
     $scope.completedLessons = <?php echo json_encode($completed_lessons); ?>;
+    $scope.isSubmitting = false;
     
     // Initialize flashcards from PHP data
     $scope.initFlashcards = function(flashcardsData) {
+        if (!flashcardsData || flashcardsData.length === 0) {
+            console.warn('No flashcards data provided');
+            return;
+        }
+        
         $scope.flashcards = flashcardsData;
         
         // Initialize flashcard properties
         angular.forEach($scope.flashcards, function(flashcard) {
             flashcard.flipped = false;
         });
+        
+        console.log('Initialized ' + $scope.flashcards.length + ' flashcards');
     };
     
     // Check if flashcard is completed
     $scope.isCompleted = function(flashcardId) {
-        return $scope.completedLessons.indexOf(flashcardId) !== -1;
+        return $scope.completedLessons.indexOf(parseInt(flashcardId)) !== -1;
     };
     
-    // Flip card function
+    // Flip card function with animation
     $scope.flipCard = function(flashcard) {
+        if (!flashcard) return;
         flashcard.flipped = !flashcard.flipped;
     };
     
@@ -500,24 +533,30 @@ perfectoApp.controller('LearnController', function($scope) {
     $scope.nextCard = function() {
         if ($scope.currentIndex < $scope.flashcards.length - 1) {
             $scope.currentIndex++;
-            // Reset flip state
-            $scope.flashcards[$scope.currentIndex].flipped = false;
+            // Reset flip state with small delay for smooth transition
+            $timeout(function() {
+                $scope.flashcards[$scope.currentIndex].flipped = false;
+            }, 50);
         }
     };
     
     $scope.prevCard = function() {
         if ($scope.currentIndex > 0) {
             $scope.currentIndex--;
-            // Reset flip state
-            $scope.flashcards[$scope.currentIndex].flipped = false;
+            // Reset flip state with small delay for smooth transition
+            $timeout(function() {
+                $scope.flashcards[$scope.currentIndex].flipped = false;
+            }, 50);
         }
     };
     
     // Select specific card
     $scope.selectCard = function(index) {
-        $scope.currentIndex = index;
-        $scope.gridView = false;
-        $scope.flashcards[index].flipped = false;
+        if (index >= 0 && index < $scope.flashcards.length) {
+            $scope.currentIndex = index;
+            $scope.gridView = false;
+            $scope.flashcards[index].flipped = false;
+        }
     };
     
     // Toggle view
@@ -525,8 +564,33 @@ perfectoApp.controller('LearnController', function($scope) {
         $scope.gridView = !$scope.gridView;
     };
     
-    // Keyboard navigation
+    // Form submission handler with validation
+    $scope.submitCompletion = function(form) {
+        if ($scope.isSubmitting) {
+            return false;
+        }
+        
+        $scope.isSubmitting = true;
+        
+        // Re-enable after 2 seconds to prevent rapid clicking
+        $timeout(function() {
+            $scope.isSubmitting = false;
+        }, 2000);
+        
+        return true;
+    };
+    
+    // Keyboard navigation with safety checks
     document.addEventListener('keydown', function(e) {
+        // Don't handle keyboard events if typing in an input
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+            return;
+        }
+        
+        if (!$scope.flashcards || $scope.flashcards.length === 0) {
+            return;
+        }
+        
         if (e.key === 'ArrowRight' || e.key === ' ') {
             e.preventDefault();
             if (!$scope.flashcards[$scope.currentIndex].flipped) {
@@ -549,233 +613,6 @@ perfectoApp.controller('LearnController', function($scope) {
             $scope.$apply();
         }
     });
-});
-</script>
-
-<?php include_once '../includes/footer.php'; ?>
-
-// Get flashcards for this category
-$flashcards_sql = "SELECT * FROM flashcards WHERE category_id = $category_id ORDER BY display_order";
-$flashcards_result = $conn->query($flashcards_sql);
-
-$flashcards = [];
-while ($row = $flashcards_result->fetch_assoc()) {
-    $flashcards[] = $row;
-}
-
-// Handle lesson completion if logged in
-if (isLoggedIn() && isset($_POST['complete_lesson'])) {
-    $user_id = $_SESSION['user_id'];
-    $flashcard_id = (int)$_POST['flashcard_id'];
-    
-    // Check if progress record exists
-    $check_sql = "SELECT * FROM progress WHERE user_id = $user_id AND language_id = $language_id AND category_id = $category_id";
-    $check_result = $conn->query($check_sql);
-    
-    if ($check_result->num_rows > 0) {
-        // Update existing record
-        $progress = $check_result->fetch_assoc();
-        $completed_lessons = json_decode($progress['completed_lessons'], true) ?: [];
-        
-        if (!in_array($flashcard_id, $completed_lessons)) {
-            $completed_lessons[] = $flashcard_id;
-        }
-        
-        $completed_json = json_encode($completed_lessons);
-        $completion_percentage = count($completed_lessons) / count($flashcards) * 100;
-        
-        $update_sql = "UPDATE progress SET 
-                      completed_lessons = '$completed_json', 
-                      lessons_completed = " . count($completed_lessons) . ", 
-                      total_lessons = " . count($flashcards) . ", 
-                      completion_percentage = $completion_percentage, 
-                      updated_at = NOW() 
-                      WHERE user_id = $user_id AND language_id = $language_id AND category_id = $category_id";
-        
-        $conn->query($update_sql);
-    } else {
-        // Create new progress record
-        $completed_lessons = [$flashcard_id];
-        $completed_json = json_encode($completed_lessons);
-        $completion_percentage = count($completed_lessons) / count($flashcards) * 100;
-        
-        $insert_sql = "INSERT INTO progress 
-                      (user_id, language_id, category_id, completed_lessons, lessons_completed, total_lessons, completion_percentage, quiz_score, created_at, updated_at) 
-                      VALUES 
-                      ($user_id, $language_id, $category_id, '$completed_json', 1, " . count($flashcards) . ", $completion_percentage, 0, NOW(), NOW())";
-        
-        $conn->query($insert_sql);
-    }
-    
-    // Check if all lessons are completed, if so, unlock the quiz
-    $check_sql = "SELECT * FROM progress WHERE user_id = $user_id AND language_id = $language_id AND category_id = $category_id";
-    $check_result = $conn->query($check_sql);
-    $progress = $check_result->fetch_assoc();
-    
-    if ($progress['lessons_completed'] >= $progress['total_lessons']) {
-        // Unlock quiz
-        $unlock_sql = "UPDATE progress SET quiz_unlocked = 1 WHERE user_id = $user_id AND language_id = $language_id AND category_id = $category_id";
-        $conn->query($unlock_sql);
-        
-        setFlashMessage("Congratulations! You've completed all lessons in this category. The quiz is now unlocked!");
-        redirectTo(SITE_URL . "/quiz/index.php?lang=$lang_code&category=$category_slug");
-    }
-}
-
-// Get user progress if logged in
-$user_progress = null;
-$completed_lessons = [];
-$quiz_unlocked = false;
-
-if (isLoggedIn()) {
-    $user_id = $_SESSION['user_id'];
-    $progress_sql = "SELECT * FROM progress WHERE user_id = $user_id AND language_id = $language_id AND category_id = $category_id";
-    $progress_result = $conn->query($progress_sql);
-    
-    if ($progress_result->num_rows > 0) {
-        $user_progress = $progress_result->fetch_assoc();
-        $completed_lessons = json_decode($user_progress['completed_lessons'], true) ?: [];
-        $quiz_unlocked = (bool)$user_progress['quiz_unlocked'];
-    }
-}
-
-include_once '../includes/header.php';
-?>
-
-<main class="learn-page" ng-app="perfectoApp" ng-controller="LearnController">
-    <div class="container">
-        <div class="learn-header">
-            <div class="language-info">
-                <img src="<?php echo $language['flag_url']; ?>" alt="<?php echo $language['name']; ?> flag">
-                <h1>Learning <?php echo $language['name']; ?></h1>
-            </div>
-            
-            <?php if (isLoggedIn() && $user_progress): ?>
-                <div class="progress-info">
-                    <div class="progress-bar">
-                        <div class="progress-fill" style="width: <?php echo $user_progress['completion_percentage']; ?>%"></div>
-                    </div>
-                    <div class="progress-text">
-                        <span><?php echo $user_progress['lessons_completed']; ?> / <?php echo $user_progress['total_lessons']; ?> lessons completed</span>
-                    </div>
-                </div>
-            <?php endif; ?>
-            
-            <?php if ($quiz_unlocked): ?>
-                <a href="<?php echo SITE_URL; ?>/quiz/index.php?lang=<?php echo $lang_code; ?>&category=<?php echo $category_slug; ?>" class="btn btn-success">Take Quiz</a>
-            <?php endif; ?>
-        </div>
-        
-        <div class="learn-content">
-            <div class="categories-sidebar">
-                <h2>Categories</h2>
-                <ul class="category-list">
-                    <?php foreach ($categories as $cat): ?>
-                        <li class="<?php echo $cat['slug'] === $category_slug ? 'active' : ''; ?>">
-                            <a href="<?php echo SITE_URL; ?>/learn/index.php?lang=<?php echo $lang_code; ?>&category=<?php echo $cat['slug']; ?>">
-                                <?php echo $cat['name']; ?>
-                            </a>
-                        </li>
-                    <?php endforeach; ?>
-                </ul>
-            </div>
-            
-            <div class="flashcards-container">
-                <h2><?php echo $category['name']; ?></h2>
-                <p class="category-description"><?php echo $category['description']; ?></p>
-                
-                <?php if (empty($flashcards)): ?>
-                    <div class="no-flashcards">
-                        <p>No flashcards available for this category yet.</p>
-                    </div>
-                <?php else: ?>
-                    <div class="flashcards" ng-init="initFlashcards(<?php echo htmlspecialchars(json_encode($flashcards)); ?>)">
-                        <div class="flashcard" ng-repeat="flashcard in flashcards" ng-class="{'completed': flashcard.completed, 'active': currentIndex == $index}">
-                            <div class="flashcard-inner" ng-class="{'flipped': flashcard.flipped}">
-                                <div class="flashcard-front">
-                                    <div class="flashcard-image">
-                                        <img ng-src="{{flashcard.image_url}}" alt="{{flashcard.native_text}}">
-                                    </div>
-                                    <div class="flashcard-content">
-                                        <h3>{{flashcard.native_text}}</h3>
-                                        <button class="btn btn-primary btn-flip" ng-click="flipCard(flashcard)">Show Translation</button>
-                                    </div>
-                                </div>
-                                <div class="flashcard-back">
-                                    <div class="flashcard-content">
-                                        <h3>{{flashcard.foreign_text}}</h3>
-                                        <p class="pronunciation" ng-if="flashcard.pronunciation">{{flashcard.pronunciation}}</p>
-                                        
-                                        <?php if (isLoggedIn()): ?>
-                                            <form method="post" action="" ng-if="!flashcard.completed">
-                                                <input type="hidden" name="flashcard_id" value="{{flashcard.id}}">
-                                                <button type="submit" name="complete_lesson" class="btn btn-success">Mark as Learned</button>
-                                            </form>
-                                            <div class="completed-badge" ng-if="flashcard.completed">
-                                                <span>Learned</span>
-                                            </div>
-                                        <?php endif; ?>
-                                        
-                                        <button class="btn btn-secondary btn-flip" ng-click="flipCard(flashcard)">Show Word</button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="flashcard-navigation">
-                            <button class="nav-btn prev-btn" ng-click="prevCard()" ng-disabled="currentIndex == 0">
-                                <i class="nav-icon prev-icon"></i>
-                                <span>Previous</span>
-                            </button>
-                            <div class="nav-indicator">
-                                <span>{{currentIndex + 1}} / {{flashcards.length}}</span>
-                            </div>
-                            <button class="nav-btn next-btn" ng-click="nextCard()" ng-disabled="currentIndex == flashcards.length - 1">
-                                <span>Next</span>
-                                <i class="nav-icon next-icon"></i>
-                            </button>
-                        </div>
-                    </div>
-                <?php endif; ?>
-            </div>
-        </div>
-    </div>
-</main>
-
-<script>
-var perfectoApp = angular.module('perfectoApp', []);
-
-perfectoApp.controller('LearnController', function($scope) {
-    $scope.currentIndex = 0;
-    $scope.flashcards = [];
-    
-    $scope.initFlashcards = function(flashcardsData) {
-        $scope.flashcards = flashcardsData;
-        
-        // Mark completed flashcards
-        var completedLessons = <?php echo json_encode($completed_lessons); ?>;
-        
-        angular.forEach($scope.flashcards, function(flashcard) {
-            flashcard.flipped = false;
-            flashcard.completed = completedLessons.includes(parseInt(flashcard.id));
-        });
-    };
-    
-    $scope.flipCard = function(flashcard) {
-        flashcard.flipped = !flashcard.flipped;
-    };
-    
-    $scope.nextCard = function() {
-        if ($scope.currentIndex < $scope.flashcards.length - 1) {
-            $scope.currentIndex++;
-        }
-    };
-    
-    $scope.prevCard = function() {
-        if ($scope.currentIndex > 0) {
-            $scope.currentIndex--;
-        }
-    };
 });
 </script>
 

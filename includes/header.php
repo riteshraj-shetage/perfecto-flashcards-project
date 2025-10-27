@@ -60,8 +60,12 @@ $current_page = basename($_SERVER['PHP_SELF']);
         </div>
     </header>
     
-    <?php if ($flash_message = getFlashMessage()): ?>
-    <div class="flash-message">
-        <?php echo $flash_message; ?>
+    <?php 
+    $flash_message = getFlashMessage();
+    $flash_type = getFlashType();
+    if ($flash_message): 
+    ?>
+    <div class="flash-message <?php echo htmlspecialchars($flash_type); ?>">
+        <?php echo htmlspecialchars($flash_message); ?>
     </div>
     <?php endif; ?>
