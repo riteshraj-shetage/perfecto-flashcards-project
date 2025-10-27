@@ -218,13 +218,17 @@ p {
 .hero {
     padding: 80px 0;
     text-align: center;
-    background-color: var(--background-white);
+    background: linear-gradient(135deg, rgba(88, 204, 2, 0.05) 0%, rgba(28, 176, 246, 0.05) 100%);
     border-bottom: 1px solid var(--border-color);
 }
 
 .hero h1 {
     font-size: 3rem;
     margin-bottom: 0.5rem;
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
 }
 
 .tagline {
@@ -245,15 +249,17 @@ p {
     width: 280px;
     border-radius: 12px;
     overflow: hidden;
-    background-color: var(--background-light);
+    background-color: var(--background-white);
     box-shadow: 0 4px 8px var(--shadow-color);
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    transition: all 0.3s ease;
     cursor: pointer;
+    border: 2px solid transparent;
 }
 
 .language-card:hover {
     transform: translateY(-5px);
-    box-shadow: 0 8px 16px var(--shadow-color);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+    border-color: var(--primary-color);
 }
 
 .card-inner {
@@ -3296,12 +3302,16 @@ button:disabled:hover,
         display: flex;
     }
     
+    .hero {
+        padding: 60px 0;
+    }
+    
     .hero h1 {
-        font-size: 2.5rem;
+        font-size: 2rem;
     }
     
     .tagline {
-        font-size: 1.2rem;
+        font-size: 1.1rem;
     }
     
     .dashboard-grid, .learn-content {
@@ -3310,10 +3320,13 @@ button:disabled:hover,
     
     .language-cards {
         gap: 15px;
+        padding: 0 10px;
     }
     
     .language-card {
         width: 100%;
+        max-width: 400px;
+        margin: 0 auto;
     }
     
     .progress-cards, .achievement-grid {
@@ -3328,6 +3341,64 @@ button:disabled:hover,
     .answer-options {
         grid-template-columns: 1fr;
     }
+    
+    .flashcard {
+        max-width: 100%;
+    }
+    
+    .flashcard-navigation {
+        flex-direction: column;
+        gap: 10px;
+        padding: 15px;
+    }
+    
+    .nav-btn {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .card-counter {
+        order: -1;
+    }
+    
+    .keyboard-shortcuts {
+        display: none; /* Hide keyboard shortcuts on mobile */
+    }
+    
+    .user-stats {
+        flex-direction: column;
+        gap: 10px;
+        width: 100%;
+    }
+    
+    .stat-item {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+@media (max-width: 480px) {
+    .container {
+        padding: 0 15px;
+    }
+    
+    .hero h1 {
+        font-size: 1.75rem;
+    }
+    
+    .flashcard-front,
+    .flashcard-back {
+        padding: 20px;
+    }
+    
+    .native-text,
+    .foreign-text {
+        font-size: 1.5rem;
+    }
+    
+    .flashcards-section {
+        padding: 20px;
+    }
 }
 
 @media (min-width: 769px) and (max-width: 1024px) {
@@ -3337,5 +3408,9 @@ button:disabled:hover,
     
     .progress-cards, .achievement-grid {
         grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .language-cards {
+        justify-content: space-around;
     }
 }
