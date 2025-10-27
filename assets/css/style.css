@@ -3065,6 +3065,227 @@ p {
     color: var(--text-light);
 }
 
+/* Flashcard Visibility Fix - Ensure ng-show works correctly */
+[ng-show].ng-hide,
+[ng-hide].ng-hide {
+    display: none !important;
+}
+
+/* Loading Animation for Flashcards */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.flashcard {
+    animation: fadeInUp 0.4s ease-out;
+}
+
+/* Better hover effects for navigation buttons */
+.nav-btn {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.nav-btn:hover:not(:disabled) {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Improved completed badge styling */
+.completed-badge {
+    animation: bounceIn 0.5s ease-out;
+}
+
+@keyframes bounceIn {
+    0% {
+        opacity: 0;
+        transform: scale(0.3);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.05);
+    }
+    70% {
+        transform: scale(0.9);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+/* Category navigation improvements */
+.category-nav {
+    margin-bottom: 30px;
+}
+
+.category-item {
+    transition: all 0.3s ease;
+    border-left: 3px solid transparent;
+}
+
+.category-item:hover {
+    border-left-color: var(--primary-color);
+    background-color: rgba(88, 204, 2, 0.05);
+}
+
+.category-item.active {
+    border-left-color: var(--primary-color);
+    background-color: rgba(88, 204, 2, 0.1);
+    font-weight: 600;
+}
+
+/* Progress bar animation */
+.progress-fill {
+    transition: width 0.8s ease-out;
+}
+
+/* Empty state improvements */
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    animation: fadeInUp 0.5s ease-out;
+}
+
+.empty-state h3 {
+    color: var(--text-dark);
+    margin-top: 20px;
+    margin-bottom: 10px;
+}
+
+.empty-state p {
+    color: var(--text-medium);
+    margin-bottom: 30px;
+}
+
+/* Form validation styles */
+input:invalid:not(:placeholder-shown) {
+    border-color: var(--error-color);
+}
+
+input:valid:not(:placeholder-shown) {
+    border-color: var(--success-color);
+}
+
+.form-error {
+    color: var(--error-color);
+    font-size: 0.875rem;
+    margin-top: 5px;
+    display: block;
+}
+
+.form-success {
+    color: var(--success-color);
+    font-size: 0.875rem;
+    margin-top: 5px;
+    display: block;
+}
+
+/* Keyboard Shortcuts Guide */
+.keyboard-shortcuts {
+    margin-top: 30px;
+    padding: 20px;
+    background-color: var(--background-light);
+    border-radius: 12px;
+    text-align: center;
+}
+
+.keyboard-shortcuts h4 {
+    color: var(--text-dark);
+    margin-bottom: 15px;
+    font-size: 1rem;
+}
+
+.shortcuts-list {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 15px;
+}
+
+.shortcut {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    color: var(--text-medium);
+    font-size: 0.875rem;
+}
+
+.shortcut kbd {
+    background-color: var(--background-white);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-family: monospace;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-dark);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    display: inline-block;
+    min-width: 30px;
+    text-align: center;
+}
+
+/* Button disabled state improvements */
+button:disabled,
+.btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed !important;
+}
+
+button:disabled:hover,
+.btn:disabled:hover {
+    transform: none !important;
+}
+
+/* Better flash message styling */
+.flash-message {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 16px 24px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+    animation: slideInRight 0.3s ease-out;
+    max-width: 400px;
+}
+
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(100px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.flash-message.success {
+    background-color: var(--success-color);
+    color: white;
+}
+
+.flash-message.error {
+    background-color: var(--error-color);
+    color: white;
+}
+
+.flash-message.warning {
+    background-color: var(--warning-color);
+    color: var(--text-dark);
+}
+
+.flash-message.info {
+    background-color: var(--secondary-color);
+    color: white;
+}
+
 /* Responsive Styles */
 @media (max-width: 768px) {
     .main-nav {

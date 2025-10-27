@@ -1,9 +1,21 @@
 <?php
 include_once '../includes/config.php';
 
-// Get selected language and category
+// Get selected language and category with validation
 $lang_code = isset($_GET['lang']) ? sanitizeInput($_GET['lang']) : 'es'; // Default to Spanish
 $category_slug = isset($_GET['category']) ? sanitizeInput($_GET['category']) : '';
+
+// Validate language code format (should be 2-3 letter code)
+if (!preg_match('/^[a-z]{2,3}$/i', $lang_code)) {
+    setFlashMessage("Invalid language code format.", "error");
+    redirectTo(SITE_URL);
+}
+
+// Validate category slug format (alphanumeric with dashes)
+if (!empty($category_slug) && !preg_match('/^[a-z0-9-]+$/i', $category_slug)) {
+    setFlashMessage("Invalid category format.", "error");
+    redirectTo(SITE_URL);
+}
 
 // Get language information
 $language_sql = "SELECT * FROM languages WHERE code = ?";
@@ -383,16 +395,17 @@ include_once '../includes/header.php';
                                             </button>
                                             
                                             <?php if (isLoggedIn()): ?>
-                                                <form method="post" action="" ng-if="!isCompleted(flashcard.id)" class="completion-form">
+                                                <form method="post" action="" ng-if="!isCompleted(flashcard.id)" class="completion-form" ng-submit="submitCompletion($event)">
                                                     <input type="hidden" name="csrf_token" value="<?php echo generateCSRFToken(); ?>">
                                                     <input type="hidden" name="flashcard_id" value="{{flashcard.id}}">
-                                                    <button type="submit" name="complete_lesson" class="btn btn-success complete-btn">
+                                                    <button type="submit" name="complete_lesson" class="btn btn-success complete-btn" ng-disabled="isSubmitting">
                                                         <i class="btn-icon check-icon"></i>
-                                                        Mark as Learned
+                                                        <span ng-if="!isSubmitting">Mark as Learned</span>
+                                                        <span ng-if="isSubmitting">Saving...</span>
                                                     </button>
                                                 </form>
                                                 <div class="completed-badge" ng-if="isCompleted(flashcard.id)">
-                                                    <i class="completed-icon"></i>
+                                                    <i class="completed-icon">✓</i>
                                                     <span>Learned!</span>
                                                 </div>
                                             <?php else: ?>
@@ -416,6 +429,17 @@ include_once '../includes/header.php';
                             <i class="view-icon grid-icon"></i>
                             Grid View
                         </button>
+                    </div>
+                    
+                    <!-- Keyboard Shortcuts Guide -->
+                    <div class="keyboard-shortcuts">
+                        <h4>⌨️ Keyboard Shortcuts</h4>
+                        <div class="shortcuts-list">
+                            <span class="shortcut"><kbd>Space</kbd> or <kbd>→</kbd> Flip card / Next</span>
+                            <span class="shortcut"><kbd>←</kbd> Previous card</span>
+                            <span class="shortcut"><kbd>F</kbd> Flip current card</span>
+                            <span class="shortcut"><kbd>G</kbd> Toggle grid view</span>
+                        </div>
                     </div>
                     
                     <!-- Grid View -->
@@ -470,29 +494,38 @@ include_once '../includes/header.php';
 
 <script>
 // Update the Angular controller initialization
-perfectoApp.controller('LearnController', function($scope) {
+perfectoApp.controller('LearnController', function($scope, $timeout) {
     $scope.currentIndex = 0;
     $scope.flashcards = [];
     $scope.gridView = false;
     $scope.completedLessons = <?php echo json_encode($completed_lessons); ?>;
+    $scope.isSubmitting = false;
     
     // Initialize flashcards from PHP data
     $scope.initFlashcards = function(flashcardsData) {
+        if (!flashcardsData || flashcardsData.length === 0) {
+            console.warn('No flashcards data provided');
+            return;
+        }
+        
         $scope.flashcards = flashcardsData;
         
         // Initialize flashcard properties
         angular.forEach($scope.flashcards, function(flashcard) {
             flashcard.flipped = false;
         });
+        
+        console.log('Initialized ' + $scope.flashcards.length + ' flashcards');
     };
     
     // Check if flashcard is completed
     $scope.isCompleted = function(flashcardId) {
-        return $scope.completedLessons.indexOf(flashcardId) !== -1;
+        return $scope.completedLessons.indexOf(parseInt(flashcardId)) !== -1;
     };
     
-    // Flip card function
+    // Flip card function with animation
     $scope.flipCard = function(flashcard) {
+        if (!flashcard) return;
         flashcard.flipped = !flashcard.flipped;
     };
     
@@ -500,24 +533,30 @@ perfectoApp.controller('LearnController', function($scope) {
     $scope.nextCard = function() {
         if ($scope.currentIndex < $scope.flashcards.length - 1) {
             $scope.currentIndex++;
-            // Reset flip state
-            $scope.flashcards[$scope.currentIndex].flipped = false;
+            // Reset flip state with small delay for smooth transition
+            $timeout(function() {
+                $scope.flashcards[$scope.currentIndex].flipped = false;
+            }, 50);
         }
     };
     
     $scope.prevCard = function() {
         if ($scope.currentIndex > 0) {
             $scope.currentIndex--;
-            // Reset flip state
-            $scope.flashcards[$scope.currentIndex].flipped = false;
+            // Reset flip state with small delay for smooth transition
+            $timeout(function() {
+                $scope.flashcards[$scope.currentIndex].flipped = false;
+            }, 50);
         }
     };
     
     // Select specific card
     $scope.selectCard = function(index) {
-        $scope.currentIndex = index;
-        $scope.gridView = false;
-        $scope.flashcards[index].flipped = false;
+        if (index >= 0 && index < $scope.flashcards.length) {
+            $scope.currentIndex = index;
+            $scope.gridView = false;
+            $scope.flashcards[index].flipped = false;
+        }
     };
     
     // Toggle view
@@ -525,8 +564,33 @@ perfectoApp.controller('LearnController', function($scope) {
         $scope.gridView = !$scope.gridView;
     };
     
-    // Keyboard navigation
+    // Form submission handler with validation
+    $scope.submitCompletion = function(form) {
+        if ($scope.isSubmitting) {
+            return false;
+        }
+        
+        $scope.isSubmitting = true;
+        
+        // Re-enable after 2 seconds to prevent rapid clicking
+        $timeout(function() {
+            $scope.isSubmitting = false;
+        }, 2000);
+        
+        return true;
+    };
+    
+    // Keyboard navigation with safety checks
     document.addEventListener('keydown', function(e) {
+        // Don't handle keyboard events if typing in an input
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+            return;
+        }
+        
+        if (!$scope.flashcards || $scope.flashcards.length === 0) {
+            return;
+        }
+        
         if (e.key === 'ArrowRight' || e.key === ' ') {
             e.preventDefault();
             if (!$scope.flashcards[$scope.currentIndex].flipped) {
