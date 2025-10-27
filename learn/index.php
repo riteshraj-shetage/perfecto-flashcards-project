@@ -47,7 +47,7 @@ while ($row = $categories_result->fetch_assoc()) {
 // If no category is selected and there are categories, select the first one
 if (empty($category_slug) && !empty($categories)) {
     $category_slug = $categories[0]['slug'];
-    redirectTo(SITE_URL . "/learn/index.php?lang=$lang_code&category=$category_slug");
+    redirectTo(SITE_URL . "/learn/index.php?lang=" . urlencode($lang_code) . "&category=" . urlencode($category_slug));
 }
 
 // Get selected category information
@@ -60,7 +60,7 @@ $category_result = $stmt->get_result();
 if ($category_result->num_rows == 0 && !empty($category_slug)) {
     // Category not found, redirect to the first category
     if (!empty($categories)) {
-        redirectTo(SITE_URL . "/learn/index.php?lang=$lang_code&category=" . $categories[0]['slug']);
+        redirectTo(SITE_URL . "/learn/index.php?lang=" . urlencode($lang_code) . "&category=" . urlencode($categories[0]['slug']));
     } else {
         redirectTo(SITE_URL);
     }
@@ -307,7 +307,7 @@ include_once '../includes/header.php';
                 <?php if ($quiz_unlocked): ?>
                     <div class="quiz-unlock-notice">
                         <span class="unlock-icon">🎉</span>
-                        <span>Quiz unlocked! <a href="<?php echo SITE_URL; ?>/quiz/index.php?lang=<?php echo $lang_code; ?>&category=<?php echo $category_slug; ?>" class="quiz-link">Take the quiz</a></span>
+                        <span>Quiz unlocked! <a href="<?php echo SITE_URL; ?>/quiz/index.php?lang=<?php echo urlencode($lang_code); ?>&category=<?php echo urlencode($category_slug); ?>" class="quiz-link">Take the quiz</a></span>
                     </div>
                 <?php endif; ?>
             </div>
@@ -319,7 +319,7 @@ include_once '../includes/header.php';
                 <h3>Categories</h3>
                 <div class="category-list">
                     <?php foreach ($categories as $cat): ?>
-                        <a href="?lang=<?php echo $lang_code; ?>&category=<?php echo $cat['slug']; ?>" 
+                        <a href="?lang=<?php echo urlencode($lang_code); ?>&category=<?php echo urlencode($cat['slug']); ?>" 
                            class="category-item <?php echo $cat['slug'] === $category_slug ? 'active' : ''; ?>">
                             <span class="category-name"><?php echo htmlspecialchars($cat['name']); ?></span>
                             <?php if (isLoggedIn()): ?>
@@ -466,7 +466,7 @@ include_once '../includes/header.php';
                     <h3>No flashcards available</h3>
                     <p>This category doesn't have any flashcards yet. Check back later or try another category.</p>
                     <?php if (count($categories) > 1): ?>
-                        <a href="?lang=<?php echo $lang_code; ?>" class="btn btn-primary">Browse Other Categories</a>
+                        <a href="?lang=<?php echo urlencode($lang_code); ?>" class="btn btn-primary">Browse Other Categories</a>
                     <?php else: ?>
                         <a href="<?php echo SITE_URL; ?>" class="btn btn-primary">Choose Another Language</a>
                     <?php endif; ?>
@@ -481,7 +481,7 @@ include_once '../includes/header.php';
                     <div class="quiz-content">
                         <h3>🎯 Quiz Time!</h3>
                         <p>You've completed all lessons in this category. Test your knowledge with a quiz!</p>
-                        <a href="<?php echo SITE_URL; ?>/quiz/index.php?lang=<?php echo $lang_code; ?>&category=<?php echo $category_slug; ?>" 
+                        <a href="<?php echo SITE_URL; ?>/quiz/index.php?lang=<?php echo urlencode($lang_code); ?>&category=<?php echo urlencode($category_slug); ?>" 
                            class="btn btn-primary quiz-btn">
                             Take Quiz
                         </a>
